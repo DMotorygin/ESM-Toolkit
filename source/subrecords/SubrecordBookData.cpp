@@ -1,0 +1,62 @@
+#include "pch.h"
+
+#include "SubrecordBookData.h"
+
+#include "xmlUtils.h"
+#include <fstream>
+#include <istream>
+#include <assert.h>
+
+ESMSubrecordBookData::ESMSubrecordBookData(std::shared_ptr<ESMSubrecordHeader>& subrecordHeader)
+	: ESMSubrecordCommon(subrecordHeader)
+	, m_Weight(0.0f)
+	, m_Value(0)
+	, m_Scroll(0)
+	, m_skillID(0)
+	, m_EnchantPoints(0)
+{}
+
+void ESMSubrecordBookData::Write(std::ostream& output)
+{
+	// NIY
+}
+
+bool ESMSubrecordBookData::Read(std::ifstream& input)
+{
+	if (!ESMSubrecordCommon::Read(input))
+		return false;
+
+#ifdef DUMP_ESM_TO_XML
+	xmlTextWriterPtr writer = XMLWriterWrapper::GetXMLWriter();
+	assert(writer);
+
+	int res = 0;
+#endif
+
+	// read subrecord data
+	READ_VAR(m_Weight);
+	READ_VAR(m_Value);
+	READ_VAR(m_Scroll);
+	READ_VAR(m_skillID);
+	READ_VAR(m_EnchantPoints);
+
+#ifdef DUMP_ESM_TO_XML
+	res = xmlTextWriterStartElement(writer, BAD_CAST "Subrecord_Contents");	assert(res != -1);
+
+	LOG_VAR_AS_STR("Weight", m_Weight);
+	LOG_VAR_AS_STR("Value", m_Value);
+	LOG_VAR_AS_STR("Scroll", m_Scroll);
+	LOG_VAR_AS_STR("Skill ID", m_skillID);
+	LOG_VAR_AS_STR("EnchantPoints", m_EnchantPoints);
+
+	res = xmlTextWriterEndElement(writer);	assert(res != -1);
+	res = xmlTextWriterEndElement(writer);	assert(res != -1);
+#endif
+
+	return true;
+}
+
+size_t ESMSubrecordBookData::GetDataSize(void) const
+{
+	return TotalSum(m_Weight, m_Value, m_Scroll, m_skillID, m_EnchantPoints);
+}
