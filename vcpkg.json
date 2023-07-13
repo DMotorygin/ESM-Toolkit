@@ -1,0 +1,10 @@
+{
+  "builtin-baseline": "5269f4f4f6b3970ad21f6956f6bb2322c024910c",
+  "dependencies": [
+    {
+      "name": "libxml2",
+      "default-features": false,
+      "features": []
+    }
+  ]
+}
