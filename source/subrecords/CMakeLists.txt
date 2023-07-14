@@ -1,91 +1,45 @@
 
-target_include_directories(esmToolkit PUBLIC include)
-
-target_sources(esmToolkit
-PRIVATE 
-SubrecordClassData.cpp
-SubrecordCommon.cpp
-SubrecordUnknown.cpp
-SubrecordDataFileInfo.cpp
-SubrecordDescription.cpp
-SubrecordFileHeader.cpp
-SubrecordFloatValue.cpp
-SubrecordFriendlyName.cpp
-SubrecordHeader.cpp
-SubrecordIntValue.cpp
-SubrecordMasterFile.cpp
-SubrecordName.cpp
-SubrecordStringValue.cpp
-SubrecordRankOrRaceName.cpp
-SubrecordFactionData.cpp
-SubrecordRaceData.cpp
-SubrecordSkillData.cpp
-SubrecordMagicEffectData.cpp
-SubrecordScriptHeader.cpp
-SubrecordWeatherData.cpp
-SubrecordMiscWeaponData.cpp
-SubrecordWeaponData.cpp
-SubrecordContainerData.cpp
-SubrecordSpellData.cpp
-SubrecordCreatureData.cpp
-SubrecordBodyPartData.cpp
-SubrecordLightData.cpp
-SubrecordEnchantmentData.cpp
-SubrecordNPCData.cpp
-SubrecordIDValue.cpp
-SubrecordArmourData.cpp
-SubrecordClothingData.cpp
-SubrecordRepairItemData.cpp
-SubrecordAlchemyApparatusData.cpp
-SubrecordLockpickData.cpp
-SubrecordIngridientData.cpp
-SubrecordBookData.cpp
-SubrecordAlchemyData.cpp
-SubrecordLeveledList.cpp
-SubrecordCellData.cpp
-SubrecordLandscapeData.cpp
-PUBLIC
-include/SubrecordClassData.h
-include/SubrecordCommon.h
-include/SubrecordUnknown.h
-include/SubrecordDataFileInfo.h
-include/SubrecordDescription.h
-include/SubrecordFileHeader.h
-include/SubrecordFloatValue.h
-include/SubrecordFriendlyName.h
-include/SubrecordHeader.h
-include/SubrecordIntValue.h
-include/SubrecordMasterFile.h
-include/SubrecordName.h
-include/SubrecordStringValue.h
-include/SubrecordRankOrRaceName.h
-include/SubrecordFactionData.h
-include/SubrecordFactionStringValue.h
-include/SubrecordSpecialAbilityName.h
-include/SubrecordRaceData.h
-include/SubrecordIDValue.h
-include/SubrecordSkillData.h
-include/SubrecordMagicEffectData.h
-include/SubrecordScriptHeader.h
-include/SubrecordWeatherData.h
-include/SubrecordMiscWeaponData.h
-include/SubrecordWeaponData.h
-include/SubrecordContainerData.h
-include/SubrecordSpellData.h
-include/SubrecordCreatureData.h
-include/SubrecordBodyPartData.h
-include/SubrecordLightData.h
-include/SubrecordEnchantmentData.h
-include/SubrecordNPCData.h
-include/SubrecordArmourData.h
-include/SubrecordClothingData.h
-include/SubrecordRepairItemData.h
-include/SubrecordAlchemyApparatusData.h
-include/SubrecordLockpickData.h
-include/SubrecordIngridientData.h
-include/SubrecordBookData.h
-include/SubrecordAlchemyData.h
-include/SubrecordLeveledList.h
-include/SubrecordCellData.h
-include/SubrecordLandscapeData.h
+target_include_directories(esmToolkit PRIVATE include)
+target_sources(esmToolkit PRIVATE 
+    SubrecordClassData.cpp
+    SubrecordCommon.cpp
+    SubrecordUnknown.cpp
+    SubrecordDataFileInfo.cpp
+    SubrecordDescription.cpp
+    SubrecordFileHeader.cpp
+    SubrecordFloatValue.cpp
+    SubrecordFriendlyName.cpp
+    SubrecordHeader.cpp
+    SubrecordIntValue.cpp
+    SubrecordMasterFile.cpp
+    SubrecordName.cpp
+    SubrecordStringValue.cpp
+    SubrecordRankOrRaceName.cpp
+    SubrecordFactionData.cpp
+    SubrecordRaceData.cpp
+    SubrecordSkillData.cpp
+    SubrecordMagicEffectData.cpp
+    SubrecordScriptHeader.cpp
+    SubrecordWeatherData.cpp
+    SubrecordMiscWeaponData.cpp
+    SubrecordWeaponData.cpp
+    SubrecordContainerData.cpp
+    SubrecordSpellData.cpp
+    SubrecordCreatureData.cpp
+    SubrecordBodyPartData.cpp
+    SubrecordLightData.cpp
+    SubrecordEnchantmentData.cpp
+    SubrecordNPCData.cpp
+    SubrecordIDValue.cpp
+    SubrecordArmourData.cpp
+    SubrecordClothingData.cpp
+    SubrecordRepairItemData.cpp
+    SubrecordAlchemyApparatusData.cpp
+    SubrecordLockpickData.cpp
+    SubrecordIngridientData.cpp
+    SubrecordBookData.cpp
+    SubrecordAlchemyData.cpp
+    SubrecordLeveledList.cpp
+    SubrecordCellData.cpp
+    SubrecordLandscapeData.cpp
 )
