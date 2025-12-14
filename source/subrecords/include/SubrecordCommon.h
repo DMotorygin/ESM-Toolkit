@@ -13,8 +13,8 @@
 class ESMSubrecordIface;
 using ESMSubrecordCreator = std::function<ESMSubrecordIface* (std::shared_ptr<ESMSubrecordHeader>& header)>;
 
-struct KeyHasher {
-	unsigned short operator()(const std::string_view& key) const {
+struct KeyHasher { // not safe but fast
+	unsigned short operator()(const std::string_view& key) const noexcept {
 		unsigned short res =
 			( *(reinterpret_cast<const unsigned short*>(&key.data()[0]))
 			+ *(reinterpret_cast<const unsigned short*>(&key.data()[2]))
@@ -24,10 +24,37 @@ struct KeyHasher {
 	}
 };
 
-struct IsEqual {
-	bool operator() (const std::string_view& a, const std::string_view& b) const {
+struct KeyHasher_STL { // slightly slower
+    std::size_t operator()(std::string_view key) const noexcept {
+        std::uint32_t v;
+        std::memcpy(&v, key.data(), 4);
+        return std::hash<std::uint32_t>{}(v);
+    }
+};
+
+struct KeyHasher1 { // shamelessly stolen 
+    unsigned short operator()(std::string_view key) const noexcept {
+        std::uint32_t v;
+        std::memcpy(&v, key.data(), 4);
+
+        v ^= v >> 16;
+        v *= 0x85ebca6b;
+        v ^= v >> 13;
+
+        return v & 0x03FF;
+    }
+};
+
+struct IsEqual_Old {
+	bool operator() (const std::string_view& a, const std::string_view& b) const noexcept {
 		return (strncmp(a.data(), b.data(), b.size()) == 0);
 	};
+};
+
+struct IsEqual {
+    bool operator()(std::string_view a, std::string_view b) const noexcept {
+        return std::memcmp(a.data(), b.data(), 4) == 0;
+    }
 };
 
 template <typename T>

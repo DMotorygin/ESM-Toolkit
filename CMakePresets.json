@@ -1,0 +1,13 @@
+{
+  "version": 3,
+  "configurePresets": [
+    {
+      "name": "default",
+      "binaryDir": "${sourceDir}/build",
+      "cacheVariables": {
+        "CMAKE_TOOLCHAIN_FILE": "C:/Users/d_mot/vcpkg/scripts/buildsystems/vcpkg.cmake",
+		"CMAKE_INSTALL_PREFIX": "${sourceDir}/install"
+      }
+    }
+  ]
+}

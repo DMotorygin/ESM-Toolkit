@@ -9,7 +9,11 @@ Steps to build:
    `vcpkg install --triplet=x64-windows`
 
    Optionally, set the environment variable `VCPKG_DEFAULT_TRIPLET=x64-windows` and omit the `--triplet` parameter.
-4. Configure project via `CMake`, e.g. with the following command: `cmake -B ../build -DCMAKE_INSTALL_PREFIX=../install` (root makefile is in ../sources/ folder)
+4. Configure project via `CMake`, e.g. with the following commands: 
+`cmake --preset default`
+`cmake --build build`
+`cmake --install build` 
+(root makefile is in ../sources/ folder)
 5. In order to launch need to set command arguments with path to Morrowind .esm file and to .xml file where results will be dumped
 
 Features:

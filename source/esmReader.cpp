@@ -103,12 +103,14 @@ std::unique_ptr<ESMRecordIface> ReadESMRecord(std::ifstream& input, bool& result
 	success = pESMObj->Read(input);
 	result = success;
 
-	//if (!success)
+	//if (!success) // don't want to abort want app to process failure
 		//std::abort();
 
 	std::unique_ptr<ESMRecordIface> esmObjWrapper(pESMObj);
 	return esmObjWrapper;
 }
+
+const int count_records = 50000; 
 
 bool ReadBinESM(std::string filepath)
 {
@@ -117,8 +119,7 @@ bool ReadBinESM(std::string filepath)
 		return false;
 
 	std::vector<std::unique_ptr<ESMRecordIface>> records;
-	records.reserve(48500);
-	//std::deque<std::unique_ptr<ESMRecordIface>> records;
+	records.reserve(count_records);
 
 	typedef std::chrono::high_resolution_clock chrono;
 	typedef std::chrono::milliseconds ms;
@@ -126,7 +127,7 @@ bool ReadBinESM(std::string filepath)
 	chrono::time_point t0 = chrono::now();
 
 	size_t count = 0;
-	while (!input.eof())
+	do
 	{
 		bool success = false;
 		records.push_back(ReadESMRecord(input, success));
@@ -134,9 +135,7 @@ bool ReadBinESM(std::string filepath)
 		if (!success)
 			return false;
 
-		if (count++ > 22000)
-			break;
-	}
+    } while (input && !input.eof());
 	input.close();
 
 	chrono::time_point t1 = chrono::now();
@@ -163,11 +162,13 @@ bool ReadESM(char* pFile, char* pOut)
 		return false;
 
 #ifdef DUMP_ESM_TO_XML
-	xmlChar* tmp = ConvertInput(pFile, MY_ENCODING);
+    // TODO: rewrite ConvertInput. Current implementation uses old libxml API that don't work anymore
+	//xmlChar* tmp = ConvertInput(pFile, MY_ENCODING);
+    xmlChar* tmp = reinterpret_cast<xmlChar*>(pFile);
 	res = xmlTextWriterWriteComment(writer, tmp);
 	assert(res != -1);
-	if (tmp != NULL) 
-		xmlFree(tmp);
+	//if (tmp != NULL) 
+	//	xmlFree(tmp);
 #endif
 
 	// begin reading

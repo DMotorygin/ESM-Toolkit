@@ -58,6 +58,7 @@ bool ESMRecordHeader::Read(std::ifstream& input)
 	// read data from file
 	input.read(reinterpret_cast<char*>(this), recordHeaderSize);
 
+    // keeping this for information and in case I need to debug something
 	/*char data[recordHeaderSize];
 	input.read(data, recordHeaderSize);
 	if ((input.rdstate() & std::ifstream::failbit) != 0)

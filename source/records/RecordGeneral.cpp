@@ -105,70 +105,73 @@ bool ESMRecordGeneral::Read(std::ifstream& input)
 	m_recordHeader->DumpToXML();
 
 	// ensure valid input stream
-	if (!input)
-		return false;
+    // - somehow, with the last record it has header with invalid code and file ends after it
+    // - so we need to handle the case when header is read but then file ends
+    if (!input.eof()) 
+    {
 
-	// read record data
+        // read record data
 #ifdef READ_RAW_DATA
-	m_dataSize = m_recordHeader->GetDataSize();
-	m_data.resize(m_dataSize);
-	input.read(m_data.data(), m_dataSize);
-	if ((input.rdstate() & std::ifstream::failbit) != 0)
-		return false;
+        m_dataSize = m_recordHeader->GetDataSize();
+        m_data.resize(m_dataSize);
+        input.read(m_data.data(), m_dataSize);
+        if ((input.rdstate() & std::ifstream::failbit) != 0)
+            return false;
 #else
-	// read subrecords
-	size_t totalRead = 0;
-	size_t sizeFromHeader = m_recordHeader->GetDataSize();
-	while (totalRead < sizeFromHeader)
-	{
-		bool success = false;
+    // read subrecords
+        size_t totalRead = 0;
+        size_t sizeFromHeader = m_recordHeader->GetDataSize();
+        while (totalRead < sizeFromHeader)
+        {
+            bool success = false;
 
-		// read subrecord header
-		std::shared_ptr<ESMSubrecordHeader> header = std::make_shared<ESMSubrecordHeader>();
-		success = header->Read(input);
-		assert(success);
-		if (!success)
-			return false;
+            // read subrecord header
+            std::shared_ptr<ESMSubrecordHeader> header = std::make_shared<ESMSubrecordHeader>();
+            success = header->Read(input);
+            assert(success);
+            if (!success)
+                return false;
 
-		// find correct record creator function
-		ESMSubrecordCreator pCreator = nullptr;
-		auto it = ESMSubrecordCreators.find(header->GetSubrecordType().data());
-		if (it == ESMSubrecordCreators.end())
-		{
-			pCreator = [](std::shared_ptr<ESMSubrecordHeader>& header) { return (ESMSubrecordIface*) new ESMSubrecordUnknown(header); };
-		}
-		else
-		{
-			pCreator = it->second;
-		}
+            // find correct record creator function
+            ESMSubrecordCreator pCreator = nullptr;
+            auto it = ESMSubrecordCreators.find(header->GetSubrecordType().data());
+            if (it == ESMSubrecordCreators.end())
+            {
+                pCreator = [](std::shared_ptr<ESMSubrecordHeader>& header) { return (ESMSubrecordIface*) new ESMSubrecordUnknown(header); };
+            }
+            else
+            {
+                pCreator = it->second;
+            }
 
-		// create subrecord instance
-		ESMSubrecordIface* pSubrecord = pCreator(header);
+            // create subrecord instance
+            ESMSubrecordIface* pSubrecord = pCreator(header);
 
-		// read subrecord
-		success = pSubrecord->Read(input);
-		assert(success);
-		if (!success)
-			return false;
+            // read subrecord
+            success = pSubrecord->Read(input);
+            assert(success);
+            if (!success)
+                return false;
 
-		success = pSubrecord->IsValid();
-		if (!success)
-		{
-			return false;
-		}
+            success = pSubrecord->IsValid();
+            if (!success)
+            {
+                return false;
+            }
 
-		m_subrecords.push_back(std::shared_ptr<ESMSubrecordIface>(pSubrecord));
+            m_subrecords.push_back(std::shared_ptr<ESMSubrecordIface>(pSubrecord));
 
-		totalRead += pSubrecord->GetDataSize();
-		totalRead += ESMSubrecordHeader::HeaderSize();
-	}
-	assert(totalRead == sizeFromHeader);
+            totalRead += pSubrecord->GetDataSize();
+            totalRead += ESMSubrecordHeader::HeaderSize();
+        }
+        assert(totalRead == sizeFromHeader);
 #endif
 
 #ifdef DUMP_ESM_TO_XML
-	res = xmlTextWriterEndElement(writer);
-	assert(res != -1);
+        res = xmlTextWriterEndElement(writer);
+        assert(res != -1);
 #endif
+    }
 
 	return true;
 }
