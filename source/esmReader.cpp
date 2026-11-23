@@ -70,6 +70,15 @@ static CreatorsMap<ESMObjCreatorFunc> ESMObjCreatorFuncs =
 	{ "LAND", [](std::unique_ptr<ESMRecordHeader>& header) {
 		return (ESMRecordIface*) new ESMRecordLand(header); }
 	},
+    { "PGRD", [](std::unique_ptr<ESMRecordHeader>& header) {
+        return (ESMRecordIface*) new ESMRecordPathGrid(header); }
+    },
+    { "INFO", [](std::unique_ptr<ESMRecordHeader>& header) {
+        return (ESMRecordIface*) new ESMRecordDialogInfo(header); }
+    },
+    { "MGEF", [](std::unique_ptr<ESMRecordHeader>& header) {
+        return (ESMRecordIface*) new ESMRecordMagicEffect(header); }
+    },
 }; 
 
 std::unique_ptr<ESMRecordIface> ReadESMRecord(std::ifstream& input, bool& result)
@@ -78,8 +87,9 @@ std::unique_ptr<ESMRecordIface> ReadESMRecord(std::ifstream& input, bool& result
 
 	// read record header
 	std::unique_ptr<ESMRecordHeader> header = std::make_unique<ESMRecordHeader>();
-	success = header->Read(input);
-	assert(success);
+    result = header->Read(input);
+    if (!result)
+        return std::unique_ptr<ESMRecordIface>();
 
 	// find correct record creator function
 	ESMObjCreatorFunc pCreator = nullptr;
@@ -102,6 +112,7 @@ std::unique_ptr<ESMRecordIface> ReadESMRecord(std::ifstream& input, bool& result
 	// read record
 	success = pESMObj->Read(input);
 	result = success;
+    assert(success);
 
 	//if (!success) // don't want to abort want app to process failure
 		//std::abort();
@@ -112,33 +123,84 @@ std::unique_ptr<ESMRecordIface> ReadESMRecord(std::ifstream& input, bool& result
 
 const int count_records = 50000; 
 
-bool ReadBinESM(std::string filepath)
+template<typename T, typename... Args>
+void AssignRecord(RecordsCollection& records_map, 
+    std::unique_ptr<ESMRecordIface> ptr)
 {
-	std::ifstream input(filepath, std::ios::binary);
-	if (!input)
-		return false;
+    if (dynamic_cast<T*>(ptr.get()) != nullptr) {
+        unsigned int uuid = ptr->UUID();
+        using Map = std::map<unsigned int, std::unique_ptr<T>>;
+        auto& records = std::get<Map>(records_map);
+        auto it = records.find(uuid);
+//        if (it != records.end())
+//            int debugj = 0;
+        records[uuid] = std::unique_ptr<T>(static_cast<T*>(ptr.release()));
+    }
+    else if constexpr (sizeof...(Args) > 0)
+    {
+        AssignRecord<Args...>(records_map, std::move(ptr));
+    }
+}
 
-	std::vector<std::unique_ptr<ESMRecordIface>> records;
-	records.reserve(count_records);
+typedef std::chrono::high_resolution_clock chrono;
+typedef std::chrono::milliseconds ms;
+typedef std::chrono::duration<float> fsec;
 
-	typedef std::chrono::high_resolution_clock chrono;
-	typedef std::chrono::milliseconds ms;
-	typedef std::chrono::duration<float> fsec;
-	chrono::time_point t0 = chrono::now();
+bool ReadBinESMToMap(std::string filepath,
+    RecordsCollection& records_map)
+{
+    // ensure valid input
+    std::ifstream input(filepath, std::ios::binary);
+    if (!input)
+        return false;
 
-	size_t count = 0;
-	do
-	{
-		bool success = false;
-		records.push_back(ReadESMRecord(input, success));
+    // time logging
+    chrono::time_point t0 = chrono::now();
 
-		if (!success)
-			return false;
+    // Read in one thread because reading from HDD
+    do {
+        bool success = false;
+        std::unique_ptr<ESMRecordIface> esmObjWrapper (ReadESMRecord(input, success));
+        if (success)
+            AssignRecord<RECORDS>(records_map, std::move(esmObjWrapper));
+    } while (input && !input.eof());
+    input.close();
+
+    // output time log
+    chrono::time_point t1 = chrono::now();
+    fsec fs = t1 - t0;
+    ms d = std::chrono::duration_cast<ms>(fs);
+    std::cout << "time spent reading: " << std::to_string(d.count()).c_str() << " ms\n";
+
+    return true;
+}
+
+
+bool ReadBinESMToVector(std::string filepath)
+{
+    std::ifstream input(filepath, std::ios::binary);
+    if (!input)
+        return false;
+
+    std::vector<std::unique_ptr<ESMRecordIface>> records;
+    records.reserve(count_records);
+
+    chrono::time_point t0 = chrono::now();
+
+    // in one thread because reading from HDD
+    do
+    {
+        bool success = false;
+        records.push_back(ReadESMRecord(input, success));
+
+        if (!success)
+            return false;
 
     } while (input && !input.eof());
-	input.close();
+    input.close();
 
-	chrono::time_point t1 = chrono::now();
+    // output time log
+    chrono::time_point t1 = chrono::now();
 	fsec fs = t1 - t0;
 	ms d = std::chrono::duration_cast<ms>(fs);
 	std::cout << "time spent reading: " << std::to_string(d.count()).c_str() << " ms\n";
@@ -173,7 +235,9 @@ bool ReadESM(char* pFile, char* pOut)
 
 	// begin reading
 	std::string filepath(pFile);
-	bool success = ReadBinESM(filepath);
+	//bool success = ReadBinESMToVector(filepath);
+    RecordsCollection records_map;
+	bool success = ReadBinESMToMap(filepath, records_map);
 
 #ifdef DUMP_ESM_TO_XML
 	res = xmlTextWriterEndElement(writer);

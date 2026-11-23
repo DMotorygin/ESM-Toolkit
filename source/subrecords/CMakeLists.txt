@@ -42,4 +42,5 @@ target_sources(esmToolkit PRIVATE
     SubrecordLeveledList.cpp
     SubrecordCellData.cpp
     SubrecordLandscapeData.cpp
+	SubrecordPathGrid.cpp
 )

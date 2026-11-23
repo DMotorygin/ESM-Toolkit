@@ -15,6 +15,8 @@ public:
 	virtual const char* GetShortName(void) const;
 	virtual size_t GetDataSize(void) const;
 
+    const std::string& Get(void) const { return m_stringValue; }
+
 protected:
 	std::string m_stringValue; // variable number of bytes
 };

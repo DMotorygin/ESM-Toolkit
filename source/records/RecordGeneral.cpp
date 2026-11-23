@@ -173,6 +173,7 @@ bool ESMRecordGeneral::Read(std::ifstream& input)
 #endif
     }
 
+    assert(m_subrecords.size() > 0);
 	return true;
 }
 
@@ -185,5 +186,28 @@ bool ESMRecordGeneral::IsValid(void) const
 {
 	bool areSubrecordsValid = ESMRecordCommon::IsValid();
 	return areSubrecordsValid;
+}
+
+unsigned int ESMRecordGeneral::UUID(void) const
+{
+    assert(m_subrecords.size() > 0);
+
+    // try getting NAME
+    ESMSubrecordName* pName = dynamic_cast<ESMSubrecordName*>(m_subrecords[0].get());
+    if (pName != nullptr)
+        return hashString(pName->Name());
+
+    // if no than try INDX
+    SubrecordIDValue* pIdx = dynamic_cast<SubrecordIDValue*>(m_subrecords[0].get());
+    if (pIdx != nullptr)
+        return pIdx->IntValue();
+
+    // try script header <= this is placeholder until I make SCPT record implementation
+    ESMSubrecordScriptHeader* pScptHeader = dynamic_cast<ESMSubrecordScriptHeader*>(m_subrecords[0].get());
+    if (pScptHeader != nullptr)
+        return hashString(pScptHeader->Name());
+
+    throw;
+    return 0; // dummy return
 }
 

@@ -16,6 +16,8 @@ public:
 	virtual size_t GetDataSize(void) const;
 	virtual bool IsValid(void) const;
 
+    const std::string& FileDesc(void) const { return m_fileDesc; }
+
 protected:
 	float m_version;
 	int m_fileType;

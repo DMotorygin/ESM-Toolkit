@@ -41,6 +41,17 @@ bool ESMRecordCommon::IsValid(void) const
 	return true;
 }
 
+unsigned int ESMRecordCommon::UUID(void) const
+{
+    // try getting NAME
+    ESMSubrecordName* pName = dynamic_cast<ESMSubrecordName*>(m_subrecords[0].get());
+    if (pName != nullptr)
+        return hashString(pName->Name());
+
+    throw;
+    return 0; // dummy return
+}
+
 void ESMRecordCommon::Write(std::ostream& output)
 {
 	// NIY
@@ -79,6 +90,7 @@ bool ESMRecordCommon::Read(std::ifstream& input)
 #endif
 
 	// report success
+    assert(m_subrecords.size() > 0);
 	return true;
 }
 

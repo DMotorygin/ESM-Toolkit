@@ -15,6 +15,8 @@ public:
 	virtual const char* GetClassName(void) const;
 	virtual const char* GetShortName(void) const { return "INTV"; }
 
+    int IntValue(void) const { return m_intValue; }
+
 protected:
 	int m_intValue; // 4 bytes
 };

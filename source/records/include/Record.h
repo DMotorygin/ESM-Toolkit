@@ -6,6 +6,7 @@
 #include <fstream>
 #include <memory>
 #include <vector>
+#include <map>
 
 #include "RecordHeader.h"
 #include "SubrecordCommon.h"
@@ -50,6 +51,8 @@
 #include "SubrecordLeveledList.h"
 #include "SubrecordCellData.h"
 #include "SubrecordLandscapeData.h"
+#include "SubrecordDialogResponse.h"
+#include "SubrecordPathGrid.h"
 
 class ESMRecordIface
 {
@@ -64,11 +67,12 @@ public:
 	virtual void Write(std::ostream& output) = 0;
 
 	// - accessors
+    virtual unsigned int UUID(void) const = 0;
 	virtual const std::string_view& GetRecordType(void) const = 0;
 	virtual bool IsValid(void) const = 0;
 };
 
-class ESMRecordCommon : ESMRecordIface
+class ESMRecordCommon : public ESMRecordIface
 {
 public:
 	ESMRecordCommon(std::unique_ptr<ESMRecordHeader>& recordHeader);
@@ -79,6 +83,7 @@ public:
 
 	virtual const std::string_view& GetRecordType(void) const;
 	virtual bool IsValid(void) const; // compares size of data in the header with supposed size of record of this type
+    virtual unsigned int UUID(void) const; // NAME subrecord
 
 protected:
 	bool ReadSubrecords(std::ifstream& input);
@@ -109,6 +114,7 @@ public:
 	virtual void Write(std::ostream& output);
 
 	virtual bool IsValid(void) const;
+    virtual unsigned int UUID(void) const; // usually NAME subrecord; INDX if not BUT it's not unique!!!
 };
 
 class ESMRecordMainHeader : public ESMRecordCommon // TES3
@@ -130,6 +136,7 @@ public:
 	virtual bool Read(std::ifstream& input);
 
 	virtual bool IsValid(void) const;
+    virtual unsigned int UUID(void) const; // from HEDR subrecord
 };
 
 class ESMRecordGameSetting : public ESMRecordCommon // GMST
@@ -389,6 +396,7 @@ public:
 	virtual bool Read(std::ifstream& input);
 
 	virtual bool IsValid(void) const { return ESMRecordCommon::IsValid() && strncmp(GetRecordType().data(), "CELL/0", 4); }
+    virtual unsigned int UUID(void) const;
 };
 
 class ESMRecordLand : public ESMRecordCommon // LAND
@@ -410,7 +418,89 @@ public:
 	virtual bool Read(std::ifstream& input);
 
 	virtual bool IsValid(void) const { return ESMRecordCommon::IsValid() && strncmp(GetRecordType().data(), "LAND/0", 4); }
-
+    virtual unsigned int UUID(void) const;
 };
 
+class ESMRecordPathGrid : public ESMRecordCommon // PGRD
+{
+public:
+    ESMRecordPathGrid(std::unique_ptr<ESMRecordHeader>& recordHeader)
+        : ESMRecordCommon(recordHeader)
+    {
+        m_subrecords = { 
+            std::make_shared<ESMSubrecordPathGridData>(),
+            std::make_shared<ESMSubrecordName>() 
+        };
+    }
 
+    virtual ~ESMRecordPathGrid(void) {}
+
+    virtual bool Read(std::ifstream& input);
+
+    virtual bool IsValid(void) const { return ESMRecordCommon::IsValid() && strncmp(GetRecordType().data(), "PGRD/0", 4); }
+    virtual unsigned int UUID(void) const;
+};
+
+class ESMRecordDialogInfo : public ESMRecordCommon // INFO
+{
+public:
+    ESMRecordDialogInfo(std::unique_ptr<ESMRecordHeader>& recordHeader)
+        : ESMRecordCommon(recordHeader)
+    {
+        m_subrecords = {
+            std::make_shared<ESMSubrecordDialogResponseId>(),
+            std::make_shared<ESMSubrecordDialogResponseIdPrev>(),
+            std::make_shared<ESMSubrecordDialogResponseIdNext>(),
+            // *** create dynamically because different types of subrecords are possible in this record ***
+            // ******
+        };
+    }
+
+    virtual ~ESMRecordDialogInfo(void) {}
+
+    virtual bool Read(std::ifstream& input);
+
+    virtual bool IsValid(void) const { return ESMRecordCommon::IsValid() && strncmp(GetRecordType().data(), "INFO/0", 4); }
+    virtual unsigned int UUID(void) const;
+};
+
+class ESMRecordMagicEffect : public ESMRecordGeneral // MGEF
+{ // This exists because ID of MGEF is not unique
+public:
+    ESMRecordMagicEffect(std::unique_ptr<ESMRecordHeader>& recordHeader)
+        : ESMRecordGeneral(recordHeader)
+    {}
+
+    virtual ~ESMRecordMagicEffect(void) {}
+
+    virtual bool IsValid(void) const { return ESMRecordCommon::IsValid() && strncmp(GetRecordType().data(), "MGEF/0", 4); }
+    virtual unsigned int UUID(void) const;
+};
+
+unsigned int hashGridKey(int x, int y);
+unsigned int hashString(const std::string& str);
+unsigned int OrderedHash(unsigned int a, unsigned int b);
+
+#define RECORDS ESMRecordMainHeader, \
+                ESMRecordGameSetting, \
+                ESMRecordGlobalVariable, \
+                ESMRecordClass, \
+                ESMRecordRegion, \
+                ESMRecordLandTexture, \
+                ESMRecordNPC, \
+                ESMRecordSpell, \
+                ESMRecordEnchantment, \
+                ESMRecordAlchemyPotion, \
+                ESMRecordLeveledItemsList, \
+                ESMRecordLeveledCreaturesList, \
+                ESMRecordCell, \
+                ESMRecordLand, \
+                ESMRecordPathGrid, \
+                ESMRecordDialogInfo, \
+                ESMRecordMagicEffect, \
+                ESMRecordGeneral
+
+template<typename... T>
+using RecordsCollectionT = std::tuple<std::map<unsigned int, std::unique_ptr<T>>...>;
+
+using RecordsCollection = RecordsCollectionT<RECORDS>;

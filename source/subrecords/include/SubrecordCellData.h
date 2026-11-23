@@ -19,6 +19,9 @@ public:
 	virtual const char* GetShortName(void) const { return "DATA"; }
 	virtual size_t GetDataSize(void) const;
 
+    unsigned int X(void) const { return m_gridX; }
+    unsigned int Y(void) const { return m_gridY; }
+
 protected:
 	int m_flags;	// 0x01 = Interior?
 					// 0x02 = Has Water

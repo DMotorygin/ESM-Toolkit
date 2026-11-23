@@ -19,6 +19,7 @@ void ESMSubrecordCellData::Write(std::ostream & output)
 	// NIY
 }
 
+#define DUMP_CELL_DATA_TO_XML
 bool ESMSubrecordCellData::Read(std::ifstream & input)
 {
 	if (!ESMSubrecordCommon::Read(input))
@@ -37,7 +38,7 @@ bool ESMSubrecordCellData::Read(std::ifstream & input)
 		return false;
 
 #ifdef DUMP_ESM_TO_XML
-#ifdef DUMP_CELL_TO_XML
+#ifdef DUMP_CELL_DATA_TO_XML
 	res = xmlTextWriterStartElement(writer, BAD_CAST "Subrecord_Contents");	assert(res != -1);
 
 	LOG_VAR_AS_HEX("Flags", m_flags);

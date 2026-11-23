@@ -17,6 +17,9 @@ public:
 	virtual const char* GetShortName(void) const { return "INTV"; }
 	virtual size_t GetDataSize(void) const;
 
+    unsigned int X(void) const { return m_X; }
+    unsigned int Y(void) const { return m_Y; }
+
 protected:
 	unsigned int m_X;
 	unsigned int m_Y;

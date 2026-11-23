@@ -57,15 +57,18 @@ bool ESMRecordHeader::Read(std::ifstream& input)
 
 	// read data from file
 	input.read(reinterpret_cast<char*>(this), recordHeaderSize);
+    if ((input.rdstate() & std::ifstream::failbit) != 0)
+        return false;
 
+    /*
     // keeping this for information and in case I need to debug something
-	/*char data[recordHeaderSize];
+	char data[recordHeaderSize];
 	input.read(data, recordHeaderSize);
 	if ((input.rdstate() & std::ifstream::failbit) != 0)
 		return false;
 
 	// read record type
-	m_recordType.assign(data, 4); // record type always have length 4
+    std::memcpy(m_recordType, data, 4); // record type always have length 4
 
 	// read subrecord data size (this value excludes size of the header)
 	memcpy((char*)&m_dataSize, data+4, 4);
@@ -75,7 +78,8 @@ bool ESMRecordHeader::Read(std::ifstream& input)
 
 	// read header known flags
 	// TODO: write meaning of this flags
-	memcpy((char*)&m_flags, data+12, 4);*/
+	memcpy((char*)&m_flags, data+12, 4);
+    */
 
 	/*
 	// read record type

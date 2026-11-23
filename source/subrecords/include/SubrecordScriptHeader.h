@@ -17,6 +17,8 @@ public:
 	virtual const char* GetShortName(void) const { return "SCHD"; }
 	virtual size_t GetDataSize(void) const;
 
+    const std::string& Name(void) const { return m_Name; }
+
 protected:
 	std::string m_Name;
 	int m_NumShorts;
