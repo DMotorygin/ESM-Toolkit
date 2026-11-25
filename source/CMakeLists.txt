@@ -9,7 +9,7 @@ find_package(LibXml2 CONFIG REQUIRED)
 # --------------------------------------------
 
 add_executable(esmToolkit)
-#add_executable(esmRetort)
+add_executable(esmRetort WIN32)
 
 # --------------------------------------------
 # Target Configuration
@@ -28,11 +28,32 @@ target_sources(esmToolkit PRIVATE ${ESM_SOURCES})
 target_include_directories(esmToolkit PRIVATE include)
 target_link_libraries(esmToolkit PRIVATE LibXml2::LibXml2)
 
-#set(RETORT_SOURCES 
-#    pch.cpp 
-#    main.cpp)
-#target_sources(esmRetort PRIVATE ${RETORT_SOURCES})
-#target_include_directories(esmRetort PRIVATE include)
+if (DUMP_ESM_TO_XML)
+    target_compile_definitions(esmToolkit PRIVATE
+        DUMP_ESM_TO_XML
+    )
+endif()
+
+set(RETORT_SOURCES 
+    xmlUtils.cpp
+    pch.cpp 
+	Reader.cpp
+    Retort.cpp
+	retort_app/Retort.rc)
+	
+target_sources(esmRetort PRIVATE ${RETORT_SOURCES})
+
+target_include_directories(esmRetort PRIVATE 
+	include 
+	retort_app/include)
+	
+target_link_libraries(esmRetort PRIVATE LibXml2::LibXml2)
+
+# Enable Unicode Windows APIs
+target_compile_definitions(esmRetort PRIVATE
+    UNICODE
+    _UNICODE
+)
 
 # --------------------------------------------
 # Target Installation

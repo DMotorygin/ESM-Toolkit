@@ -1,6 +1,8 @@
 
 target_include_directories(esmToolkit PRIVATE include)
-target_sources(esmToolkit PRIVATE 
+target_include_directories(esmRetort PRIVATE include)
+
+set(SOURCES
     SubrecordClassData.cpp
     SubrecordCommon.cpp
     SubrecordUnknown.cpp
@@ -44,3 +46,6 @@ target_sources(esmToolkit PRIVATE
     SubrecordLandscapeData.cpp
 	SubrecordPathGrid.cpp
 )
+
+target_sources(esmToolkit PRIVATE ${SOURCES})
+target_sources(esmRetort PRIVATE ${SOURCES})
