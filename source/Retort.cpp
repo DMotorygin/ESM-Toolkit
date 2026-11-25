@@ -130,51 +130,72 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
    return TRUE;
 }
 
-void InsertData()
+// Example rows
+struct ExampleItem
 {
-    // Example rows
-    struct ExampleItem
-    {
-        const wchar_t* name;
-        const wchar_t* description;
-        const wchar_t* status;
-    };
+    const wchar_t* name;
+    const wchar_t* description;
+    const wchar_t* status;
+};
 
-    ExampleItem items[] =
-    {
-        { L"Retort A", L"Primary processing unit", L"Running" },
-        { L"Retort B", L"Secondary processing unit", L"Idle" },
-        { L"Retort C", L"High-temperature chamber", L"Maintenance" },
-        { L"Retort D", L"Experimental processing unit", L"Running" },
-        { L"Retort E", L"Backup processing unit", L"Offline" },
-        { L"Retort F", L"Vacuum processing chamber", L"Running" }
-    };
+ExampleItem items[] =
+{
+    { L"Retort A", L"Primary processing unit", L"Running" },
+    { L"Retort B", L"Secondary processing unit", L"Idle" },
+    { L"Retort C", L"High-temperature chamber", L"Maintenance" },
+    { L"Retort D", L"Experimental processing unit", L"Running" },
+    { L"Retort E", L"Backup processing unit", L"Offline" },
+    { L"Retort F", L"Vacuum processing chamber", L"Running" }
+};
 
-    for (int i = 0; i < _countof(items); ++i)
-    {
-        LVITEMW lvi = {};
-        lvi.mask = LVIF_TEXT | LVIF_IMAGE;
-        lvi.iItem = i;
-        lvi.iSubItem = 0;
-        lvi.pszText = (LPWSTR)L"";
-        lvi.iImage = 0;
+bool ContainsIgnoreCase(
+    const std::wstring& text,
+    const std::wstring& filter)
+{
+    std::wstring a = text;
+    std::wstring b = filter;
 
-        int index = ListView_InsertItem(hList, &lvi);
+    std::transform(a.begin(), a.end(), a.begin(), towlower);
+    std::transform(b.begin(), b.end(), b.begin(), towlower);
+
+    return a.find(b) != std::wstring::npos;
+}
+
+void UpdateList()
+{
+    wchar_t buffer[256];
+
+    GetWindowTextW(hFilter, buffer, 256);
+
+    std::wstring filter = buffer;
+
+    ListView_DeleteAllItems(hList);
+
+    int row = 0;
+
+    for (const auto& item : items)
+    {
+        if (!ContainsIgnoreCase(item.name, filter))
+            continue;
+
+        LVITEMW lv = {};
+        lv.mask = LVIF_TEXT | LVIF_IMAGE;
+        lv.iItem = row;
+        lv.iImage = 0;
+        lv.pszText = (LPWSTR)L"";
+
+        ListView_InsertItem(hList, &lv);
 
         ListView_SetItemText(
-            hList, index, 1,
-            (LPWSTR)items[i].name
-        );
+            hList, row, 1, (LPWSTR)item.name);
 
         ListView_SetItemText(
-            hList, index, 2,
-            (LPWSTR)items[i].description
-        );
+            hList, row, 2, (LPWSTR)item.description);
 
         ListView_SetItemText(
-            hList, index, 3,
-            (LPWSTR)items[i].status
-        );
+            hList, row, 3, (LPWSTR)item.status);
+
+        ++row;
     }
 }
 
@@ -251,8 +272,6 @@ void CreateMainControls(HWND hWnd)
         hImageList,
         LVSIL_SMALL
     );
-
-    InsertData();
 }
 
 //
@@ -271,6 +290,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     {
     case WM_COMMAND:
         {
+            if (LOWORD(wParam) == IDC_FILTER &&
+                HIWORD(wParam) == EN_CHANGE)
+            {
+                UpdateList();
+                return 0;
+            }
+
             int wmId = LOWORD(wParam);
             // Parse the menu selections:
             switch (wmId)
@@ -289,6 +315,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     case WM_CREATE:
         {
             CreateMainControls(hWnd);
+            UpdateList();
             return 0;
         }
     case WM_PAINT:
