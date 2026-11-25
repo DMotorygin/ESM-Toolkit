@@ -12,10 +12,6 @@
 #define MY_ENCODING "UTF-8" //"ISO-8859-1"
 #endif
 
-//#ifdef _DEBUG
-#define DUMP_ESM_TO_XML
-//#endif
-
 class XMLWriterWrapper
 {
 public:

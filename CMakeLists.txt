@@ -25,6 +25,7 @@ if (DEFINED ESMTOOLKIT_DEBUG_POSTFIX AND NOT DEFINED CMAKE_DEBUG_POSTFIX)
     set(CMAKE_DEBUG_POSTFIX ${ESMTOOLKIT_DEBUG_POSTFIX})
 endif ()
 
+option(DUMP_ESM_TO_XML "Enable dumping ESM data to XML" OFF)
 
 # --------------------------------------------
 # Global Properties

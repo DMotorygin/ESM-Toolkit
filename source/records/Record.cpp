@@ -1229,35 +1229,6 @@ unsigned int ESMRecordDialogInfo::UUID(void) const
         res.append("0");
 
     return hashString(res);
-   
-    /*ESMSubrecordName* pName = nullptr;
-    auto it = m_subrecords.begin(); it += 4;
-    do {
-        pName = dynamic_cast<ESMSubrecordName*>(it->get());
-        it++;
-    } while ((pName == nullptr) && (it != m_subrecords.end()));
-
-    if (pName != nullptr)
-        hash = hashString(pName->Name());
-
-    // kind of sily, but there are different records with identical strings, and Id's that produce the same hash
-    unsigned int hash2 = 0;
-    ESMSubrecordDialogResponseId* pId = (ESMSubrecordDialogResponseId*)m_subrecords[0].get();
-    assert(pId != nullptr);
-
-    ESMSubrecordDialogResponseIdPrev* pPrevId = (ESMSubrecordDialogResponseIdPrev*)m_subrecords[1].get();
-    assert(pPrevId != nullptr);
-    hash2 = OrderedHash(std::stoull(pId->Get()),
-        pPrevId->Get().length() > 1 ? std::stoull(pPrevId->Get()) : 0);
-
-    ESMSubrecordDialogResponseIdNext* pNextId = (ESMSubrecordDialogResponseIdNext*)m_subrecords[2].get();
-    assert(pNextId != nullptr);
-    hash2 = OrderedHash(hash2, 
-        pNextId->Get().length() > 1 ? std::stoull(pNextId->Get()) : 0);
-
-    hash ^= hash2;*/
-
-    //return hash;
 }
 
 unsigned int ESMRecordMagicEffect::UUID(void) const
