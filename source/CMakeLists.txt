@@ -55,6 +55,12 @@ target_compile_definitions(esmRetort PRIVATE
     _UNICODE
 )
 
+add_custom_command(TARGET esmRetort POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+        "${CMAKE_CURRENT_SOURCE_DIR}/retort_app/PNG"
+        "$<TARGET_FILE_DIR:esmRetort>/PNG"
+)
+
 # --------------------------------------------
 # Target Installation
 # --------------------------------------------

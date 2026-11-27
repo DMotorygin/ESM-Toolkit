@@ -16,6 +16,7 @@
 #include <vector>
 #include <algorithm>
 #include <cassert>
+#include <filesystem>
 #include <cwctype>
 
 #pragma comment(lib, "Comctl32.lib")
@@ -68,6 +69,14 @@ int ReadESM()
 
 std::vector<MagicEffectItem> items;
 
+std::filesystem::path GetExecutableDirectory()
+{
+    wchar_t buffer[MAX_PATH];
+    GetModuleFileNameW(nullptr, buffer, MAX_PATH);
+
+    return std::filesystem::path(buffer).parent_path();
+}
+
 void BuildItems()
 {
     using Map = std::map<unsigned int, std::unique_ptr<ESMRecordMagicEffect>>;
@@ -96,12 +105,12 @@ void BuildItems()
             [](wchar_t c) { return std::towlower(c); });
         icon.insert(0, L"b_tx_s_");
         icon += L".png";
-        icon.insert(0, L"C://Users//d_mot//source//repos//ESM-Toolkit//source//retort_app//PNG//");
+        std::filesystem::path iconPath =
+            GetExecutableDirectory() / L"PNG" / icon;
+        icon = iconPath;
 
         items.emplace_back(MagicEffectItem{ name, description, id, icon });
     }
-
-    int debugi = 1;
 }
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
@@ -327,15 +336,22 @@ void CreateMainControls(HWND hWnd)
     );
 
     // Table
+    int rowHeight = 36;
+    int headerHeight = 26;
+    int maxRows = 6;
+    int listHeight = headerHeight + (rowHeight * maxRows);
+    int listWidth = 616;
+
     hList = CreateWindowExW(
         WS_EX_CLIENTEDGE,
         WC_LISTVIEWW,
         L"",
         WS_CHILD | WS_VISIBLE | WS_TABSTOP |
         LVS_REPORT | LVS_SHOWSELALWAYS,
-        10, 46, 700, 400,
+        10, 46,
+        listWidth, listHeight,
         hWnd,
-        (HMENU)IDC_LIST,
+        (HMENU)(INT_PTR)IDC_LIST,
         hInst,
         nullptr
     );
@@ -430,19 +446,23 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         break;
     case WM_SIZE:
         {
-            int width = LOWORD(lParam);
-            int height = HIWORD(lParam);
+            // Keep filter dimensions fixed
+            MoveWindow(
+                hFilter,
+                10, 10,
+                300, 26,
+                TRUE
+            );
 
-            if (hFilter && hList)
-            {
-                MoveWindow(hFilter, 10, 10,
-                    width - 20, 26, TRUE);
+            // Keep ListView dimensions fixed
+            MoveWindow(
+                hList,
+                10, 46,
+                640, 242,
+                TRUE
+            );
 
-                MoveWindow(hList, 10, 46,
-                    width - 20, height - 56, TRUE);
-            }
-
-            return 0;
+            break;
         }
     case WM_DESTROY:
         if (hImageList)
