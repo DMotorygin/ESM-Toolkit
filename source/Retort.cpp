@@ -36,12 +36,16 @@ WCHAR szWindowClass[MAX_LOADSTRING];            // the main window class name
 
 HWND hFilter = nullptr;
 HWND hList = nullptr;
-HIMAGELIST hImageList = nullptr;
+HWND hList2 = nullptr;
+HIMAGELIST hImageListMGEF = nullptr;
+HIMAGELIST hImageListINGR = nullptr;
 
 
 RecordsCollection records_map;
-std::vector<MagicEffectItem> items;
-std::unordered_map<std::wstring, int> imageCache;
+std::vector<MagicEffectItem> magic_effects_items;
+std::vector<IngedientsItem> ingredients_items;
+std::unordered_map<std::wstring, int> magic_effects_imageCache;
+std::unordered_map<std::wstring, int> ingredients_imageCache;
 
 
 
@@ -65,7 +69,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     if (!readSuccess)
         return FALSE;
 
-    BuildItems(records_map, items);
+    BuildItems(records_map, magic_effects_items);
 
     // TODO: Place code here.
     INITCOMMONCONTROLSEX icc = {};
@@ -170,7 +174,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
    return TRUE;
 }
 
-void UpdateList()
+void UpdateList1()
 {
     wchar_t buffer[256];
 
@@ -182,16 +186,16 @@ void UpdateList()
 
     int row = 0;
 
-    for (const auto& item : items)
+    for (const auto& item : magic_effects_items)
     {
         // filtering logic
         if (!ContainsIgnoreCase(item.name, filter))
             continue;
 
-        // icon
-        int imageIndex = GetImageIndex(item.icon, hImageList, imageCache);
+        // icon idx
+        int imageIndex = GetImageIndex(item.icon, hImageListMGEF, magic_effects_imageCache);
 
-        // UI element
+        // UI elements
         LVITEMW lv = {};
         lv.mask = LVIF_TEXT | LVIF_IMAGE;
         lv.iItem = row;
@@ -214,6 +218,35 @@ void UpdateList()
     }
 }
 
+void UpdateList2() // ingredients_items
+{
+    ListView_DeleteAllItems(hList2);
+
+    int row = 0;
+
+    for (const auto& item : ingredients_items)
+    {
+        // filtering logic
+        if (true)
+            continue;
+
+        // icon idx
+        int imageIndex = GetImageIndex(item.icon, hImageListMGEF, ingredients_imageCache);
+
+        // UI elements
+        LVITEMW lv = {};
+        lv.mask = LVIF_TEXT | LVIF_IMAGE;
+        lv.iItem = row;
+        lv.iImage = imageIndex;
+        lv.pszText = (LPWSTR)L"";
+
+        // text fields
+        ListView_InsertItem(hList2, &lv);
+
+        ++row;
+    }
+}
+
 void CreateMainControls(HWND hWnd)
 {
     // Filter input
@@ -230,20 +263,24 @@ void CreateMainControls(HWND hWnd)
         nullptr
     );
 
-    // Table
+    // Tables
     int rowHeight = 36;
     int headerHeight = 26;
     int maxRows = 6;
     int listHeight = headerHeight + (rowHeight * maxRows);
     int listWidth = 616;
+    int listX1 = 10;
+    int listX2 = listX1 + listWidth + 100;
+    int listY = 46;
 
+    // - Magic Effects View
     hList = CreateWindowExW(
         WS_EX_CLIENTEDGE,
         WC_LISTVIEWW,
         L"",
         WS_CHILD | WS_VISIBLE | WS_TABSTOP |
         LVS_REPORT | LVS_SHOWSELALWAYS,
-        10, 46,
+        listX1, listY,
         listWidth, listHeight,
         hWnd,
         (HMENU)(INT_PTR)IDC_LIST,
@@ -251,7 +288,6 @@ void CreateMainControls(HWND hWnd)
         nullptr
     );
 
-    // Table appearance
     ListView_SetExtendedListViewStyle(
         hList,
         LVS_EX_FULLROWSELECT |
@@ -259,7 +295,6 @@ void CreateMainControls(HWND hWnd)
         LVS_EX_DOUBLEBUFFER
     );
 
-    // Columns
     LVCOLUMNW col = {};
     col.mask = LVCF_TEXT | LVCF_WIDTH;
 
@@ -279,8 +314,8 @@ void CreateMainControls(HWND hWnd)
     col.cx = 50;
     ListView_InsertColumn(hList, 3, &col);
 
-    // Image list
-    hImageList = ImageList_Create(
+    // - Image list with Magic Effects
+    hImageListMGEF = ImageList_Create(
         32, 32,
         ILC_COLOR32,
         256, 256
@@ -288,7 +323,56 @@ void CreateMainControls(HWND hWnd)
 
     ListView_SetImageList(
         hList,
-        hImageList,
+        hImageListMGEF,
+        LVSIL_SMALL
+    );
+
+    // - Ingedients View
+    hList2 = CreateWindowExW(
+        WS_EX_CLIENTEDGE,
+        WC_LISTVIEWW,
+        L"",
+        WS_CHILD | WS_VISIBLE | WS_TABSTOP |
+        LVS_REPORT | LVS_SHOWSELALWAYS,
+        listX2, listY,
+        listWidth, listHeight,
+        hWnd,
+        (HMENU)(INT_PTR)(IDC_LIST + 1),
+        hInst,
+        nullptr
+    );
+
+    ListView_SetExtendedListViewStyle(
+        hList2,
+        LVS_EX_FULLROWSELECT |
+        LVS_EX_GRIDLINES |
+        LVS_EX_DOUBLEBUFFER
+    );
+
+    col.mask = LVCF_TEXT | LVCF_WIDTH;
+
+    col.pszText = (LPWSTR)L"";
+    col.cx = 36;
+    ListView_InsertColumn(hList2, 0, &col);
+
+    col.pszText = (LPWSTR)L"Name";
+    col.cx = 160;
+    ListView_InsertColumn(hList2, 1, &col);
+
+    col.pszText = (LPWSTR)L"ID";
+    col.cx = 50;
+    ListView_InsertColumn(hList2, 3, &col);
+
+    // - Image list with Ingredients
+    hImageListINGR = ImageList_Create(
+        32, 32,
+        ILC_COLOR32,
+        256, 256
+    );
+
+    ListView_SetImageList(
+        hList2,
+        hImageListINGR,
         LVSIL_SMALL
     );
 }
@@ -312,7 +396,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             if (LOWORD(wParam) == IDC_FILTER &&
                 HIWORD(wParam) == EN_CHANGE)
             {
-                UpdateList();
+                UpdateList1();
                 return 0;
             }
 
@@ -334,7 +418,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     case WM_CREATE:
         {
             CreateMainControls(hWnd);
-            UpdateList();
+            UpdateList1();
             return 0;
         }
     case WM_PAINT:
@@ -366,11 +450,17 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             break;
         }
     case WM_DESTROY:
-        imageCache.clear();
-        if (hImageList)
+        magic_effects_imageCache.clear();
+        if (hImageListMGEF)
         {
-            ImageList_Destroy(hImageList);
-            hImageList = nullptr;
+            ImageList_Destroy(hImageListMGEF);
+            hImageListMGEF = nullptr;
+        }
+        ingredients_imageCache.clear();
+        if (hImageListINGR)
+        {
+            ImageList_Destroy(hImageListINGR);
+            hImageListINGR = nullptr;
         }
         PostQuitMessage(0);
         break;
