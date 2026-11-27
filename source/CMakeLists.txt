@@ -39,6 +39,7 @@ set(RETORT_SOURCES
     pch.cpp 
 	Reader.cpp
     Retort.cpp
+	retort_app/RetortESMUtils.cpp
 	retort_app/Retort.rc)
 	
 target_sources(esmRetort PRIVATE ${RETORT_SOURCES})

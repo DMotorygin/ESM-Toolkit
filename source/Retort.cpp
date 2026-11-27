@@ -5,6 +5,8 @@
 #include "Retort.h"
 #include "Reader.h"
 #include "Record.h"
+#include "Utils.h"
+#include "RetortESMUtils.h"
 
 #include <windows.h>
 #include <objidl.h>
@@ -45,73 +47,10 @@ BOOL                InitInstance(HINSTANCE, int);
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
 
-int ReadESM()
-{
-    // parse input
-    int argc = 0;
-    LPWSTR* argv = CommandLineToArgvW(GetCommandLineW(), &argc);
-    if (argv == nullptr || argc < 2)
-        return 1;
-
-    std::wstring widePath(argv[1]);
-    std::string filepath(widePath.begin(), widePath.end());
-
-    LocalFree(argv);
-
-    // read esm
-    bool success = ReadBinESMToMap(filepath, records_map);
-    assert(success);
-    if (!success)
-        return 1;
-
-    return 0;
-}
 
 std::vector<MagicEffectItem> items;
 
-std::filesystem::path GetExecutableDirectory()
-{
-    wchar_t buffer[MAX_PATH];
-    GetModuleFileNameW(nullptr, buffer, MAX_PATH);
 
-    return std::filesystem::path(buffer).parent_path();
-}
-
-void BuildItems()
-{
-    using Map = std::map<unsigned int, std::unique_ptr<ESMRecordMagicEffect>>;
-    auto& records = std::get<Map>(records_map);
-
-    for (auto& record : records)
-    {
-        const ESMRecordMagicEffect* pMGEF = record.second.get();
-
-        ESMSubrecordDescription* pDesc = 
-            (ESMSubrecordDescription*)pMGEF->Subrecords().back().get();
-        std::string mgefDesc = pDesc->Get();
-        std::wstring description(mgefDesc.begin(), mgefDesc.end());
-
-        SubrecordIDValue* pID = (SubrecordIDValue*)pMGEF->Subrecords()[0].get();
-        std::wstring id = std::to_wstring(pID->IntValue());
-
-        ESMSubrecordEffectIconStringValue* pIconString = 
-            (ESMSubrecordEffectIconStringValue*)pMGEF->Subrecords()[2].get();
-        std::string iconName = pIconString->Get();
-        std::wstring icon (iconName.begin(), iconName.end());
-        icon.erase(0, 7);
-        icon.erase(icon.length() - 5);
-        std::wstring name = icon;
-        std::transform(name.begin(), name.end(), name.begin(),
-            [](wchar_t c) { return std::towlower(c); });
-        icon.insert(0, L"b_tx_s_");
-        icon += L".png";
-        std::filesystem::path iconPath =
-            GetExecutableDirectory() / L"PNG" / icon;
-        icon = iconPath;
-
-        items.emplace_back(MagicEffectItem{ name, description, id, icon });
-    }
-}
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
                      _In_opt_ HINSTANCE hPrevInstance,
@@ -122,11 +61,11 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     UNREFERENCED_PARAMETER(lpCmdLine);
 
     // Read ESM from input
-    int readSuccess = !ReadESM();
+    int readSuccess = !ReadESM(records_map);
     if (!readSuccess)
         return FALSE;
 
-    BuildItems();
+    BuildItems(records_map, items);
 
     // TODO: Place code here.
     INITCOMMONCONTROLSEX icc = {};
@@ -231,20 +170,6 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
    return TRUE;
 }
 
-
-bool ContainsIgnoreCase(
-    const std::wstring& text,
-    const std::wstring& filter)
-{
-    std::wstring a = text;
-    std::wstring b = filter;
-
-    std::transform(a.begin(), a.end(), a.begin(), towlower);
-    std::transform(b.begin(), b.end(), b.begin(), towlower);
-
-    return a.find(b) != std::wstring::npos;
-}
-
 void UpdateList()
 {
     wchar_t buffer[256];
@@ -265,7 +190,6 @@ void UpdateList()
         // icon
         Bitmap bitmap(
             (LPWSTR)item.icon.c_str()
-            //L"C:\\Users\\d_mot\\source\\repos\\ESM-Toolkit\\source\\retort_app\\PNG\\b_tx_s_reflect.png"
         );
         int imageIndex = -1;
 
@@ -381,7 +305,7 @@ void CreateMainControls(HWND hWnd)
     ListView_InsertColumn(hList, 2, &col);
 
     col.pszText = (LPWSTR)L"ID";
-    col.cx = 120;
+    col.cx = 50;
     ListView_InsertColumn(hList, 3, &col);
 
     // Image list
