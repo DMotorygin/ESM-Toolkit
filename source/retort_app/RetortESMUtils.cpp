@@ -4,12 +4,24 @@
 #include "Reader.h"
 #include "Utils.h"
 
+#include <windows.h>
+#include <objidl.h>
+#include <shellapi.h>
+#include <gdiplus.h>
+#include <commctrl.h>
+
 #include <map>
 #include <algorithm>
 #include <filesystem>
 #include <string>
 #include <vector>
+#include <unordered_map>
 #include <cwctype>
+
+using namespace Gdiplus;
+
+#pragma comment(lib, "Comctl32.lib")
+#pragma comment(lib, "Gdiplus.lib")
 
 void BuildItems(const RecordsCollection& records_map, std::vector<MagicEffectItem>& items)
 {
@@ -67,5 +79,40 @@ int ReadESM(RecordsCollection& records_map)
         return 1;
 
     return 0;
+}
+
+int GetImageIndex(const std::wstring& imagePath, 
+    HIMAGELIST hImageList,
+    std::unordered_map<std::wstring, int>& imageCache)
+{
+    // Already loaded?
+    auto it = imageCache.find(imagePath);
+
+    if (it != imageCache.end())
+        return it->second;
+
+    // Load image
+    Bitmap bitmap(imagePath.c_str());
+
+    if (bitmap.GetLastStatus() != Ok)
+        return -1;
+
+    HBITMAP hBitmap = nullptr;
+
+    if (bitmap.GetHBITMAP(Color(0, 0, 0, 0), &hBitmap) != Ok)
+        return -1;
+
+    int imageIndex = ImageList_Add(
+        hImageList,
+        hBitmap,
+        nullptr
+    );
+
+    DeleteObject(hBitmap);
+
+    if (imageIndex >= 0)
+        imageCache.emplace(imagePath, imageIndex);
+
+    return imageIndex;
 }
 

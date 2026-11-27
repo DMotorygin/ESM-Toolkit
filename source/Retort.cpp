@@ -20,6 +20,7 @@
 #include <cassert>
 #include <filesystem>
 #include <cwctype>
+#include <unordered_map>
 
 #pragma comment(lib, "Comctl32.lib")
 #pragma comment(lib, "Gdiplus.lib")
@@ -39,6 +40,9 @@ HIMAGELIST hImageList = nullptr;
 
 
 RecordsCollection records_map;
+std::vector<MagicEffectItem> items;
+std::unordered_map<std::wstring, int> imageCache;
+
 
 
 // Forward declarations of functions included in this code module:
@@ -46,10 +50,6 @@ ATOM                MyRegisterClass(HINSTANCE hInstance);
 BOOL                InitInstance(HINSTANCE, int);
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
-
-
-std::vector<MagicEffectItem> items;
-
 
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
@@ -184,35 +184,12 @@ void UpdateList()
 
     for (const auto& item : items)
     {
+        // filtering logic
         if (!ContainsIgnoreCase(item.name, filter))
             continue;
 
         // icon
-        Bitmap bitmap(
-            (LPWSTR)item.icon.c_str()
-        );
-        int imageIndex = -1;
-
-        if (bitmap.GetLastStatus() == Ok)
-        {
-            HBITMAP hBitmap = nullptr;
-
-            bitmap.GetHBITMAP(
-                Color(0, 0, 0, 0),
-                &hBitmap
-            );
-
-            if (hBitmap)
-            {
-                imageIndex = ImageList_Add(
-                    hImageList,
-                    hBitmap,
-                    nullptr
-                );
-
-                DeleteObject(hBitmap);
-            }
-        }
+        int imageIndex = GetImageIndex(item.icon, hImageList, imageCache);
 
         // UI element
         LVITEMW lv = {};
@@ -235,12 +212,6 @@ void UpdateList()
 
         ++row;
     }
-
-    ListView_SetImageList(
-        hList,
-        hImageList,
-        LVSIL_SMALL
-    );
 }
 
 void CreateMainControls(HWND hWnd)
@@ -313,6 +284,12 @@ void CreateMainControls(HWND hWnd)
         32, 32,
         ILC_COLOR32,
         256, 256
+    );
+
+    ListView_SetImageList(
+        hList,
+        hImageList,
+        LVSIL_SMALL
     );
 }
 
@@ -389,6 +366,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             break;
         }
     case WM_DESTROY:
+        imageCache.clear();
         if (hImageList)
         {
             ImageList_Destroy(hImageList);
