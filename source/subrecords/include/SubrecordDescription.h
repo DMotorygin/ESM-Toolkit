@@ -16,6 +16,7 @@ public:
 	virtual const char* GetClassName(void) const;
 	virtual const char* GetShortName(void) const { return "DESC"; }
 	virtual size_t GetDataSize(void) const;
+    const std::string& Get(void) const { return m_description; }
 
 protected:
 	std::string m_description; // variable length?

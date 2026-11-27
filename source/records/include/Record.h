@@ -85,6 +85,8 @@ public:
 	virtual bool IsValid(void) const; // compares size of data in the header with supposed size of record of this type
     virtual unsigned int UUID(void) const; // NAME subrecord
 
+    const std::vector<std::shared_ptr<ESMSubrecordIface>>& Subrecords(void) const { return m_subrecords; }
+
 protected:
 	bool ReadSubrecords(std::ifstream& input);
 

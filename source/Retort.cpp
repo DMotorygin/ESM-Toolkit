@@ -1,17 +1,27 @@
 // Retort.cpp : Defines the entry point for the application.
 //
+
 #include "framework.h"
 #include "Retort.h"
+#include "Reader.h"
+#include "Record.h"
 
 #include <windows.h>
+#include <objidl.h>
+#include <shellapi.h>
+#include <gdiplus.h>
 #include <commctrl.h>
 
 #include <string>
 #include <vector>
 #include <algorithm>
+#include <cassert>
 #include <cwctype>
 
 #pragma comment(lib, "Comctl32.lib")
+#pragma comment(lib, "Gdiplus.lib")
+
+using namespace Gdiplus;
 
 #define MAX_LOADSTRING 100
 
@@ -25,11 +35,74 @@ HWND hList = nullptr;
 HIMAGELIST hImageList = nullptr;
 
 
+RecordsCollection records_map;
+
+
 // Forward declarations of functions included in this code module:
 ATOM                MyRegisterClass(HINSTANCE hInstance);
 BOOL                InitInstance(HINSTANCE, int);
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
+
+int ReadESM()
+{
+    // parse input
+    int argc = 0;
+    LPWSTR* argv = CommandLineToArgvW(GetCommandLineW(), &argc);
+    if (argv == nullptr || argc < 2)
+        return 1;
+
+    std::wstring widePath(argv[1]);
+    std::string filepath(widePath.begin(), widePath.end());
+
+    LocalFree(argv);
+
+    // read esm
+    bool success = ReadBinESMToMap(filepath, records_map);
+    assert(success);
+    if (!success)
+        return 1;
+
+    return 0;
+}
+
+std::vector<MagicEffectItem> items;
+
+void BuildItems()
+{
+    using Map = std::map<unsigned int, std::unique_ptr<ESMRecordMagicEffect>>;
+    auto& records = std::get<Map>(records_map);
+
+    for (auto& record : records)
+    {
+        const ESMRecordMagicEffect* pMGEF = record.second.get();
+
+        ESMSubrecordDescription* pDesc = 
+            (ESMSubrecordDescription*)pMGEF->Subrecords().back().get();
+        std::string mgefDesc = pDesc->Get();
+        std::wstring description(mgefDesc.begin(), mgefDesc.end());
+
+        SubrecordIDValue* pID = (SubrecordIDValue*)pMGEF->Subrecords()[0].get();
+        std::wstring id = std::to_wstring(pID->IntValue());
+
+        ESMSubrecordEffectIconStringValue* pIconString = 
+            (ESMSubrecordEffectIconStringValue*)pMGEF->Subrecords()[2].get();
+        std::string iconName = pIconString->Get();
+        std::wstring icon (iconName.begin(), iconName.end());
+        icon.erase(0, 7);
+        icon.erase(icon.length() - 5);
+        std::wstring name = icon;
+        std::transform(name.begin(), name.end(), name.begin(),
+            [](wchar_t c) { return std::towlower(c); });
+        icon.insert(0, L"b_tx_s_");
+        icon += L".png";
+        icon.insert(0, L"C://Users//d_mot//source//repos//ESM-Toolkit//source//retort_app//PNG//");
+
+        items.emplace_back(MagicEffectItem{ name, description, id, icon });
+    }
+
+    int debugi = 1;
+}
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
                      _In_opt_ HINSTANCE hPrevInstance,
@@ -38,6 +111,13 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 {
     UNREFERENCED_PARAMETER(hPrevInstance);
     UNREFERENCED_PARAMETER(lpCmdLine);
+
+    // Read ESM from input
+    int readSuccess = !ReadESM();
+    if (!readSuccess)
+        return FALSE;
+
+    BuildItems();
 
     // TODO: Place code here.
     INITCOMMONCONTROLSEX icc = {};
@@ -50,6 +130,16 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     int titleLength = LoadStringW(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
     int classLength = LoadStringW(hInstance, IDC_PROJECT2, szWindowClass, MAX_LOADSTRING);
     MyRegisterClass(hInstance);
+
+    // Initialize GDI
+    GdiplusStartupInput gdiplusStartupInput;
+    ULONG_PTR gdiplusToken;
+
+    GdiplusStartup(
+        &gdiplusToken,
+        &gdiplusStartupInput,
+        nullptr
+    );
 
     // Perform application initialization:
     if (!InitInstance (hInstance, nCmdShow))
@@ -70,6 +160,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
             DispatchMessage(&msg);
         }
     }
+
+    GdiplusShutdown(gdiplusToken);
 
     return (int) msg.wParam;
 }
@@ -130,23 +222,6 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
    return TRUE;
 }
 
-// Example rows
-struct ExampleItem
-{
-    const wchar_t* name;
-    const wchar_t* description;
-    const wchar_t* status;
-};
-
-ExampleItem items[] =
-{
-    { L"Retort A", L"Primary processing unit", L"Running" },
-    { L"Retort B", L"Secondary processing unit", L"Idle" },
-    { L"Retort C", L"High-temperature chamber", L"Maintenance" },
-    { L"Retort D", L"Experimental processing unit", L"Running" },
-    { L"Retort E", L"Backup processing unit", L"Offline" },
-    { L"Retort F", L"Vacuum processing chamber", L"Running" }
-};
 
 bool ContainsIgnoreCase(
     const std::wstring& text,
@@ -178,25 +253,61 @@ void UpdateList()
         if (!ContainsIgnoreCase(item.name, filter))
             continue;
 
+        // icon
+        Bitmap bitmap(
+            (LPWSTR)item.icon.c_str()
+            //L"C:\\Users\\d_mot\\source\\repos\\ESM-Toolkit\\source\\retort_app\\PNG\\b_tx_s_reflect.png"
+        );
+        int imageIndex = -1;
+
+        if (bitmap.GetLastStatus() == Ok)
+        {
+            HBITMAP hBitmap = nullptr;
+
+            bitmap.GetHBITMAP(
+                Color(0, 0, 0, 0),
+                &hBitmap
+            );
+
+            if (hBitmap)
+            {
+                imageIndex = ImageList_Add(
+                    hImageList,
+                    hBitmap,
+                    nullptr
+                );
+
+                DeleteObject(hBitmap);
+            }
+        }
+
+        // UI element
         LVITEMW lv = {};
         lv.mask = LVIF_TEXT | LVIF_IMAGE;
         lv.iItem = row;
-        lv.iImage = 0;
+        lv.iImage = imageIndex;
         lv.pszText = (LPWSTR)L"";
 
+        // text fields
         ListView_InsertItem(hList, &lv);
 
         ListView_SetItemText(
-            hList, row, 1, (LPWSTR)item.name);
+            hList, row, 1, (LPWSTR)item.name.c_str());
 
         ListView_SetItemText(
-            hList, row, 2, (LPWSTR)item.description);
+            hList, row, 2, (LPWSTR)item.description.c_str());
 
         ListView_SetItemText(
-            hList, row, 3, (LPWSTR)item.status);
+            hList, row, 3, (LPWSTR)item.id.c_str());
 
         ++row;
     }
+
+    ListView_SetImageList(
+        hList,
+        hImageList,
+        LVSIL_SMALL
+    );
 }
 
 void CreateMainControls(HWND hWnd)
@@ -253,24 +364,15 @@ void CreateMainControls(HWND hWnd)
     col.cx = 300;
     ListView_InsertColumn(hList, 2, &col);
 
-    col.pszText = (LPWSTR)L"Status";
+    col.pszText = (LPWSTR)L"ID";
     col.cx = 120;
     ListView_InsertColumn(hList, 3, &col);
 
     // Image list
     hImageList = ImageList_Create(
-        16, 16,
+        32, 32,
         ILC_COLOR32,
-        1, 1
-    );
-
-    HICON icon = LoadIcon(nullptr, IDI_APPLICATION);
-    ImageList_AddIcon(hImageList, icon);
-
-    ListView_SetImageList(
-        hList,
-        hImageList,
-        LVSIL_SMALL
+        256, 256
     );
 }
 
@@ -343,6 +445,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             return 0;
         }
     case WM_DESTROY:
+        if (hImageList)
+        {
+            ImageList_Destroy(hImageList);
+            hImageList = nullptr;
+        }
         PostQuitMessage(0);
         break;
     default:
